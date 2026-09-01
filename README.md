@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/31668536/README.md)
 # Painel PipeLovers × Grupo Sem Parar — Guia de publicação no GitHub Pages
 
 Este pacote contém o dashboard estático de acompanhamento de consumo da Universidade PipeLovers pelo Grupo Sem Parar, com os dados do `Hierarquia.csv`, `consumo.csv` e do PDI (planilha do Drive) já processados. O layout segue o padrão do painel de referência (sidebar com árvore de navegação, header com filtros, KPI cards com gradiente, gráficos e dropdown de "Links de acesso" agrupado por hierarquia), mantendo a arquitetura de arquivos separados por recorte para isolamento real dos dados.
