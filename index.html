@@ -755,7 +755,14 @@ async function loadAllData(){
       'no topo do arquivo e preencha "owner" e "repo" com os dados do seu repositório no GitHub.'
     );
   }
-  const rawBase = `https://raw.githubusercontent.com/${CFG.owner}/${CFG.repo}/${CFG.branch}`;
+  // Buscamos os dados como caminho RELATIVO à própria página (mesma origem do GitHub Pages),
+  // em vez de "raw.githubusercontent.com". Isso evita dois problemas comuns:
+  //  1) redes corporativas / proxies que bloqueiam especificamente o domínio raw.githubusercontent.com
+  //     (o painel em si carrega normalmente, mas os dados vêm com HTTP 403 — isso já aconteceu).
+  //  2) eventuais bloqueios de CORS entre domínios diferentes.
+  // Como o index.html é publicado pelo GitHub Pages a partir do mesmo repositório dos CSVs,
+  // um caminho relativo (ex.: "./data/membros.csv") já aponta para o lugar certo.
+  const rawBase = '.';
   const apiUrl = `https://api.github.com/repos/${CFG.owner}/${CFG.repo}/contents/${CFG.attendanceFolder}?ref=${CFG.branch}`;
 
   setLoadingSub('Buscando lista de membros (área / diretoria / gerência / liderança)…');
@@ -812,11 +819,16 @@ async function loadAllData(){
       );
     }
     const listing = await listRes.json();
-    csvFiles = (Array.isArray(listing) ? listing : []).filter(item =>
-      item.type === 'file' &&
-      item.name.toLowerCase().endsWith('.csv') &&
-      item.name.toLowerCase().startsWith(CFG.attendancePrefix.toLowerCase())
-    );
+    csvFiles = (Array.isArray(listing) ? listing : [])
+      .filter(item =>
+        item.type === 'file' &&
+        item.name.toLowerCase().endsWith('.csv') &&
+        item.name.toLowerCase().startsWith(CFG.attendancePrefix.toLowerCase())
+      )
+      // Mesmo neste plano B (listagem via API), baixamos o conteúdo pelo caminho relativo
+      // (mesma origem do GitHub Pages) em vez do "download_url" da API, que aponta para
+      // raw.githubusercontent.com — o domínio que pode estar bloqueado.
+      .map(item => ({ name: item.name, download_url: `${rawBase}/${CFG.attendanceFolder}/${item.name}` }));
   }
 
   if(csvFiles.length === 0){
