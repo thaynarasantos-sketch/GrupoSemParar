@@ -1,5 +1,14 @@
 [
   {
     "name": "consumo.csv"
+  },
+  {
+    "name": "consumo_supabase.csv"
+  },
+  {
+    "name": "membros.csv"
+  },
+  {
+    "name": "pdi.csv"
   }
 ]
