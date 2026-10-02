@@ -648,24 +648,28 @@ function buildTeams(membersRows, attendanceRows, pdiRows){
     const email = (row['Email']||row['email']||'').trim().toLowerCase();
     const titulo = (row['Conteúdo']||row['Conteudo']||row['Nome da aula']||'').trim();
     const dataStr = (row['Data']||row['Data de conclusão']||row['Data de conclusao']||'').trim();
+    // "código da aula" — identificador estável vindo do Supabase/planilha de consumo, usado
+    // para vincular consumo ao PDI mesmo quando o nome da aula muda de um lado para o outro.
+    const codigo = (row['codigoaula']||row['Código da aula']||row['codigo da aula']||row['Código']||row['codigo']||'').trim();
     if(!email || !titulo || !dataStr) return;
     const dedupKey = email+'|'+titulo+'|'+dataStr;
     if(seen.has(dedupKey)){ dedupCount++; return; }
     seen.add(dedupKey);
     const iso = parseBRDateTime(dataStr);
     if(!attByEmail.has(email)) attByEmail.set(email, []);
-    attByEmail.get(email).push({titulo, data:dataStr, iso});
+    attByEmail.get(email).push({titulo, data:dataStr, iso, codigo});
   });
   attByEmail.forEach(list => list.sort((a,b)=> (b.iso||'').localeCompare(a.iso||'')));
 
-  // Monta mapa de PDI por e-mail: email -> [ 'aula 1', 'aula 2', ... ] (nomes originais)
+  // Monta mapa de PDI por e-mail: email -> [ {nome, codigo}, ... ]
   const pdiByEmail = new Map();
   (pdiRows||[]).forEach(row=>{
     const email = (row['Email']||row['E-mail']||row['email']||'').trim().toLowerCase();
     const aula = (row['Aula PDI']||row['Aula do PDI']||row['aula pdi']||'').trim();
+    const codigo = (row['Código da aula']||row['Codigo da aula']||row['código da aula']||row['codigo da aula']||row['Código']||row['Codigo']||'').trim();
     if(!email || !aula) return;
     if(!pdiByEmail.has(email)) pdiByEmail.set(email, []);
-    pdiByEmail.get(email).push(aula);
+    pdiByEmail.get(email).push({ nome: aula, codigo });
   });
 
   // Monta times (nível folha = liderança)
@@ -679,9 +683,15 @@ function buildTeams(membersRows, attendanceRows, pdiRows){
       const lessons = attByEmail.get(m.email) || [];
       const pdiAulas = pdiByEmail.get(m.email) || [];
       const watchedTitles = new Set(lessons.map(a=>normTitle(a.titulo)));
+      // Preferimos casar por "código da aula" (estável) e caímos para o nome normalizado
+      // quando o consumo ainda não tiver código (compatibilidade com fontes antigas).
+      const watchedCodes = new Set(lessons.filter(a=>a.codigo).map(a=>a.codigo));
       const pdi = pdiAulas.length ? {
         total: pdiAulas.length,
-        aulas: pdiAulas.map(nome => ({ nome, feita: watchedTitles.has(normTitle(nome)) })),
+        aulas: pdiAulas.map(p => ({
+          nome: p.nome,
+          feita: (p.codigo && watchedCodes.has(p.codigo)) || watchedTitles.has(normTitle(p.nome))
+        })),
       } : null;
       if(pdi){
         pdi.feitas = pdi.aulas.filter(a=>a.feita).length;
