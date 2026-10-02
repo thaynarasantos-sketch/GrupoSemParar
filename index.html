@@ -617,7 +617,8 @@ const ACCENT_MAP = {'à':'a','á':'a','â':'a','ã':'a','ä':'a','è':'e','é':'
 function normTitle(s){
   s = (s||'').toLowerCase().trim();
   s = s.split('').map(ch=>ACCENT_MAP[ch]||ch).join('');
-  s = s.replace(/\s+/g,' ').replace(/[.:;,!?"'`´]+$/g,'').trim();
+  s = s.replace(/["'`´]/g,'');
+  s = s.replace(/\s+/g,' ').replace(/\s+([:;,.!?])/g,'$1').replace(/[.:;,!?"'`´]+$/g,'').trim();
   return s;
 }
 
